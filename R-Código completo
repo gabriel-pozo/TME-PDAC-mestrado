@@ -1,0 +1,422 @@
+Pacotes exigidos
+library(ggplot2)
+library(cellranger)
+library(Seurat)
+library(patchwork)
+library(dplyr)
+library(readr)
+library(devtools)
+library(remotes)
+library(SeuratWrappers)
+library(monocle3)
+library(RColorBrewer)
+library(TCGAbiolinks)
+library(maftools)
+
+Link do drive para visualizar as figuras do Workflow --> https://drive.google.com/drive/u/0/folders/1WnhbwYXQUzXoITf49HhpQreacIAirmgA
+
+Acesso para o download dos dados de single-cell do modelo animal de câncer de pâncreas --> https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE125588
+
+###Carregando o workspace no R
+
+Late_Panin_Kic.data <- Read10X(data.dir = "F:/Datasets Mestrado/GSE125588_RAW/Late_PanIN_KIC")
+PanIN_Late<- CreateSeuratObject(counts = Late_Panin_Kic.data, project = "PanIN_Late", min.cells = 3, min.features = 200)
+
+Normal_Pancreas.data <- Read10X(data.dir = "F:/Datasets Mestrado/GSE125588_RAW/Normal_Pancreas")
+Pancreas <- CreateSeuratObject(counts = Normal_Pancreas.data, project = "Pancreas", min.cells = 3, min.features = 200)
+
+Early_Panin_Kic.data <- Read10X(data.dir = "F:/Datasets Mestrado/GSE125588_RAW/Early_PanIN_KIC")
+PanIN_Early <- CreateSeuratObject(counts = Early_Panin_Kic.data, project = "PanIN_Early", min.cells = 3, min.features = 200)
+
+Late_KPC.data <- Read10X(data.dir = "F:/Datasets Mestrado/GSE125588_RAW/Late_KPC")
+Tumor_KPC<- CreateSeuratObject(counts = Late_KPC.data, project = "Tumor_KPC", min.cells = 3, min.features = 200)
+
+Late_KPfC.data <- Read10X(data.dir = "F:/Datasets Mestrado/GSE125588_RAW/Late_KPfC")
+Tumor_KPfC<- CreateSeuratObject(counts = Late_KPfC.data, project = "Tumor_KPfC", min.cells = 3, min.features = 200)
+
+###Agora que temos todos objetos, precisamos integrá-los para prosseguir. Dessa forma, temos todas as amostras em um único objeto
+###Fazemos isso utilizando a função do R "merge"... também vamos identificar as diferentes amostras presentes no objeto 
+GSE125588_ALLdata <- merge(Pancreas, y = c(PanIN_Early, PanIN_Late, Tumor_KPC, Tumor_KPfC), add.cell.ids = c("Pancreas","PanIN_Early","PanIN_Late","Tumor_KPC","Tumor_KPfC"), project = "GSE125588_ALLdata")
+
+###Nesse primeiro vamos dividir o objeto integrado em uma lista de "n objetos" (n = quantidade de amostras do dataset; nesse caso eram 5 --> pâncreas, panin_early, panin_late, tumor_kpc e tumor_kpfc)
+GSE125588_ALLdata.list <- SplitObject(GSE125588_ALLdata, split.by = "orig.ident")
+
+###Em seguida, utilizamos uma função para que cada amostra seja normalizada e os genes mais expressos sejam identificados de forma independente
+GSE125588_ALLdata.list <- lapply(X = GSE125588_ALLdata.list, FUN = function(x) {
+  x <- NormalizeData(x)
+  x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+###Agora selecionamos os genes que são comuns entre todas as nossas amostras
+features <- SelectIntegrationFeatures(object.list = GSE125588_ALLdata.list)
+
+###Já tendo esses genes, eles vão servir como "âncora" para integrar os diferentes objetos em um só novamente
+GSE125588_ALLdata.anchors <- FindIntegrationAnchors(object.list = GSE125588_ALLdata.list, anchor.features = features)
+GSE125588_ALLdata.combined <- IntegrateData(anchorset = GSE125588_ALLdata.anchors)
+
+###Precisamos indicar que as análises downstream seriam realizadas no objeto integrado
+DefaultAssay(GSE125588_ALLdata.combined) <- "integrated"
+
+###Os passos abaixo são iguais ao tutorial do Seurat... o número de PCA "ideal" depende da natureza da nossa amostra, portanto vamos rodar PCA e verificar se capturou 90% da variância  
+GSE125588_ALLdata.combined <- ScaleData(GSE125588_ALLdata.combined, verbose = FALSE)
+GSE125588_ALLdata.combined <- RunPCA(GSE125588_ALLdata.combined, npcs = 50, verbose = FALSE)
+st_dev <- GSE125588_ALLdata.combined@reductions$pca@stdev
+var <- st_dev^2
+sum(var[1:nPCA])/ sum(var)
+
+GSE125588_ALLdata.combined <- RunUMAP(GSE125588_ALLdata.combined, reduction = "pca", dims = 1:50)
+GSE125588_ALLdata.combined <- FindNeighbors(GSE125588_ALLdata.combined, reduction = "pca", dims = 1:50)
+GSE125588_ALLdata.combined <- FindClusters(GSE125588_ALLdata.combined, resolution = 1)
+
+###Dois UMAP serão plotados lado a lado para investigarmos se há efeito de Batch (quando o resultado da clusterização está acontecendo por um viés não biológico)### Figura no drive mostrando o efeito de Batch (Figura.1)
+p1<-DimPlot(GSE125588_ALLdata.combined, reduction = "umap", label = TRUE)
+p2<-DimPlot(GSE125588_ALLdata.combined, reduction = "umap", group.by = "orig.ident")
+p1+p2 (Figura.2)
+
+###Função para encontrar as assinaturas de cada cluster
+GSE125588_ALLdata.combined.markers <- FindAllMarkers(GSE125588_ALLdata.combined, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25, test.use = "roc")
+
+###Nomeando os clusters após identificação baseada na literatura 
+GSE125588_ALLdata.combined.ids <- c("Fibroblasts","Acinar","Macrophages","Fibroblasts","Macrophages","Macrophages","Acinar","Macrophages","ETC","ETC","Lymphocytes","Macrophages","Lymphocytes","RBC","Acinar","Acinar","Endothelial","Cycling Macro","Granulocytes","Granulocytes",
+                            "Mesothelial","Macrophages","Cycling ETC","Islet","DC","Beta","Islet","Plasma","Plasmacytoid DC")
+names(GSE125588_ALLdata.combined.ids) <- levels(GSE125588_ALLdata.combined)
+GSE125588_ALLdata.combined <- RenameIdents(GSE125588_ALLdata.combined, GSE125588_ALLdata.combined.ids)
+
+###Plotando os UMAPs agora com os clusters já nomeados
+p1<-DimPlot(GSE125588_ALLdata.combined, reduction = "umap")
+p2<-DimPlot(GSE125588_ALLdata.combined, reduction = "umap", group.by = "orig.ident")
+p1+p2 (Figura.3)
+
+###Dotplot pra visualização dos genes mais expressos por cada cluster
+features <- c("Col1a2","Col1a1","Pnlip","Reg3b","Cd14","Cd74","Il1b","Krt18","Sox9","Gzmb","Cd79a","Hba-a1","Pecam1","Top2a","Mrc1","S100a8","S100a9","Msln","Nkain4","Mki67","Sst","Cd40","Ccr7","Ins2","Jchain","Siglech","Ccr9")
+DotPlot(GSE125588_ALLdata.combined, features = features) + RotatedAxis() (Figura.4)
+
+###Renomeando os clusters ("Cycling ETC" --> "ETC"; "Cycling Macro" --> "Macrophages") e testando uma nova palheta de cores pra ajudar na visualização
+new.order <- c("Fibroblasts","Acinar","Macrophages","Fibroblasts","Macrophages","Macrophages","Acinar","Macrophages","ETC","ETC","Lymphocytes","Macrophages","Lymphocytes","RBC","Acinar","Acinar","Endothelial","Macrophages","Granulocytes","Granulocytes",
+                            "Mesothelial","Macrophages","ETC","Endocrine","DC","Endocrine","Endocrine","Plasma","Plasmacytoid DC")
+GSE125588_ALLdata.combined@active.ident <- factor(GSE125588_ALLdata.combined@active.ident, levels = new_order)
+p1<-DimPlot(GSE125588_ALLdata.combined, reduction = "umap", cols = c("Endocrine" = "brown","Macrophages" = "navy","Lymphocytes" = "darkgreen","Plasma" = "darkcyan","Fibroblasts" = "darkorange", "Mesothelial" = "paleturquoise4","ETC" = "mediumorchid3","Acinar" = "royalblue","Endothelial" = "firebrick1","DC" = "deeppink","RBC" = "gold","Plasmacytoid DC" = "limegreen", "Granulocytes" = "thistle"))+NoLegend()
+p2<-DimPlot(GSE125588_ALLdata.combined, reduction = "umap", group.by = "orig.ident", cols = c("Pancreas" = "royalblue", "PanIN_Early" = "darkorange", "PanIN_Late" = "deeppink", "Tumor_KPC" = "mediumorchid3", "Tumor_KPfC" = "navy"))
+p1+p2 (Figura.5)
+
+###Refazendo a tabela da assinatura dos clusters, no entanto agora somente para os 4 primeiros genes de cada cluster. Vamos usá-los para fazer o heatmap!
+Cell.Markers <- FindAllMarkers(GSE125588_ALLdata.combined, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25, test.use = "roc")
+top4 <- Cell.Markers %>% group_by(cluster) %>% top_n(n = 4, wt = avg_log2FC)
+
+###Ordenando manualmente os clusters do mais abundante para o menos abundante
+my_levels <- c("Macrophages", "Fibroblasts", "Acinar", "ETC", "Lymphocytes", "Granulocytes", "RBC", "Endothelial", "Endocrine", "Mesothelial", "DC", "Plasma", "pDC")
+GSE125588_ALLdata.combined@active.ident <- factor(x = GSE125588_ALLdata.combined@active.ident, levels = my_levels)
+DoHeatmap(GSE125588_ALLdata.combined, features = features, angle = 90, size = 3) + NoLegend() (Figura.6)
+
+###Função para os barplots! Assim temos uma ideia da proporção de cada tipo celular nas diferentes condições biológicas (pâncreas normal, lesão pré-maligna e tumor)
+GSE125588.combined.pt <- table(Idents(GSE125588_ALLdata.combined), GSE125588_ALLdata.combined$orig.ident)
+GSE125588.combined.pt <- as.data.frame(GSE125588.combined.pt)
+GSE125588.combined.pt$Var1 <- as.character(GSE125588.combined.pt$Var1)
+GSE125588.combined.PT = GSE125588.combined.pt %>% rename(Cell_Type = "Var1", Condition = "Var2") %>%
+  group_by(Condition) %>%
+  mutate(Percent = Freq / sum(Freq)*100)
+ggplot(GSE125588.combined.PT, aes(x = Condition, y = Percent, fill = Cell_Type)) +
+  geom_bar(stat = "identity") (Figura.7)
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+###Após a caracterização inicial da heterogeneidade do TME, vamos investigar a heterogeneidade dentro dos clusters. Começando pelos CAFs
+CAF_Meso.subset <- subset(GSE125588_ALLdata.combined, idents = c("Fibroblasts","Mesothelial"))
+
+###Comandos abaixo são os mesmos encontrados no tutorial do Seurat!
+CAF_Meso.subset <- NormalizeData(CAF_Meso.subset, normalization.method = "LogNormalize", scale.factor = 10000)
+CAF_Meso.subset <- FindVariableFeatures(CAF_Meso.subset, selection.method = "vst", nfeatures = 2000)
+CAF_MesoAll.genes <- rownames(CAF_Meso.subset)
+CAF_Meso.subset <- ScaleData(CAF_Meso.subset, features = CAF_MesoAll.genes)
+
+CAF_Meso.subset <- RunPCA(CAF_Meso.subset, features = VariableFeatures(object = CAF_Meso.subset))
+CAFst_dev <- CAF_Meso.subset@reductions$pca@stdev
+CAFvar <- CAFst_dev^2
+sum(CAFvar[1:40])/ sum(CAFvar)##### checando se representa 0.9 da variância
+
+CAF_Meso.subset <- FindNeighbors(CAF_Meso.subset, dims = 1:40)
+CAF_Meso.subset <- FindClusters(CAF_Meso.subset, resolution = 1.2)
+CAF_Meso.subset <- RunUMAP(CAF_Meso.subset, dims = 1:40)
+
+p1<-DimPlot(CAF_Meso.subset, reduction = "umap", label = TRUE, pt.size = 1)
+p2<-DimPlot(CAF_Meso.subset, reduction = "umap", group.by = "orig.ident", pt.size = 1)
+p1+p2 (Figura.8)
+
+CAF_Meso.markers <- FindAllMarkers(CAF_Meso.subset, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+
+###Como erros no single-cell são comuns, esses clusters abaixo foram excluídos por não apresentarem assinatura de fibroblastos (provavelmente doublets)
+CAF_Meso.subset <- subset(CAF_Meso.subset, idents = c("5","9","10"), invert = TRUE)
+
+###Depois de excluirmos, precisamos rodar a normalização, PCA, UMAP novamente!!! Portanto, após a remoção refazer os passos do começo dessa seção a partir da normalização!
+
+###Nomeando os clusters dos CAFs
+CAF_Meso.ids <- c("iCAF","iCAF","iCAF","myCAF","myCAF","iCAF","Meso","myCAF","myCAF","apCAF")
+names(CAF_Meso.ids) <- levels(CAF_Meso.subset)
+CAF_Meso.subset <- RenameIdents(CAF_Meso.subset, CAF_Meso.ids)
+
+###UMAP com os clusters nomeados
+p1<-DimPlot(CAF_Meso.subset, reduction = "umap", pt.size = 1)
+p2<-DimPlot(CAF_Meso.subset, reduction = "umap", group.by = "orig.ident", pt.size = 1)
+p1+p2 (Figura.9)
+
+###Barplot dos CAFs
+CAF_Meso.subset.pt <- table(Idents(CAF_Meso.subset), CAF_Meso.subset$orig.ident)
+CAF_Meso.subset.pt <- as.data.frame(CAF_Meso.subset.pt)
+CAF_Meso.subset.pt$Var1 <- as.character(CAF_Meso.subset.pt$Var1)
+CAF_Meso.subset.PT = CAF_Meso.subset.pt %>% rename(Cell_Type = "Var1", Condition = "Var2") %>%
+  group_by(Condition) %>%
+  mutate(Percent = Freq / sum(Freq)*100)
+ggplot(CAF_Meso.subset.PT, aes(x = Condition, y = Percent, fill = Cell_Type)) +
+  geom_bar(stat = "identity") (Figura.10)
+
+###Violino plot para visualização da expressão de genes de interesse que marcam um determinado cluster
+VlnPlot(CAF_Meso.subset, features = c("Msln","Upk3b","Nkain4","Cd74","H2-Aa","H2-Ab1"), pt.size = 0) (Figura.11)
+VlnPlot(CAF_Meso.subset, features = c("Cxcl14","Il6","Has1","Ly6a","Col1a1","Cxcl13"), pt.size = 0) (Figura.12)
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+###Isolamos o cluster dos macrófagos e conduzimos os mesmos passos feitos para os CAFs
+Macrophages.subset <- subset(GSE125588.combined_FINISHED, idents = c("Macrophages"))
+
+###Comandos abaixo são os mesmos encontrados no tutorial do Seurat!
+Macrophages.subset <- NormalizeData(Macrophages.subset, normalization.method = "LogNormalize", scale.factor = 10000)
+Macrophages.subset <- FindVariableFeatures(Macrophages.subset, selection.method = "vst", nfeatures = 2000)
+MacrophagesAll.genes <- rownames(Macrophages.subset)
+Macrophages.subset <- ScaleData(Macrophages.subset, features = MacrophagesAll.genes)
+
+Macrophages.subset <- RunPCA(Macrophages.subset, features = VariableFeatures(object = Macrophages.subset))
+st_dev <- Macrophages.subset@reductions$pca@stdev
+var <- st_dev^2
+sum(var[1:40])/ sum(var)##### checando se representa 0.9 da variância
+
+Macrophages.subset <- FindNeighbors(Macrophages.subset, dims = 1:40)
+Macrophages.subset <- FindClusters(Macrophages.subset, resolution = 1)
+Macrophages.subset <- RunUMAP(Macrophages.subset, dims = 1:40)
+
+p1<-DimPlot(Macrophages.subset, reduction = "umap", pt.size = 1, label = T)
+p2<-DimPlot(Macrophages.subset, reduction = "umap", group.by = "orig.ident", pt.size = 1)
+p1+p2 (Figura.13)
+
+Macrophages.markers <- FindAllMarkers(Macrophages.subset, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+
+###Como erros no single-cell são comuns, esses clusters abaixo foram excluídos por não apresentarem assinatura de macrófagos (provavelmente doublets)
+Macrophages.subset <- subset(Macrophages.subset, idents = c("11","12"), invert = T)
+
+###Depois de excluirmos, precisamos rodar a normalização, PCA, UMAP novamente!!! Portanto, após a remoção refazer os passos do começo dessa seção a partir da normalização!
+
+###Nomeando os clusters dos macrófagos
+Macrophages.ids <- c("M2 Arg1+","M2 Mrc1+","M2 Retnla+","TAM","Atf3+","M1","M2 Arg1+","Proinflammatory","Monocyte","M1","Proinflammatory")
+names(Macrophages.ids) <- levels(Macrophages.subset)
+Macrophages.subset <- RenameIdents(Macrophages.subset, Macrophages.ids)
+
+###UMAP com os clusters nomeados
+p1<-DimPlot(Macrophages.subset, reduction = "umap", pt.size = 1)
+p2<-DimPlot(Macrophages.subset, reduction = "umap", group.by = "orig.ident", pt.size = 1)
+p1+p2 (Figura.14)
+
+###Violino plot para visualização da expressão de genes de interesse que marcam um determinado cluster
+VlnPlot(Macrophages.subset, features = c("Arg1","Mrc1","Plac8","Cd74","Ccr7","Ccl17","Il1b","Retnla","Atf3"), pt.size = 0) (Figura.15)
+
+###Barplot dos macrófagos
+Macrophages.subset.pt <- table(Idents(Macrophages.subset), Macrophages.subset$orig.ident)
+Macrophages.subset.pt <- as.data.frame(Macrophages.subset.pt)
+Macrophages.subset.pt$Var1 <- as.character(Macrophages.subset.pt$Var1)
+Macrophages.subset.PT = Macrophages.subset.pt %>% rename(Cell_Type = "Var1", Condition = "Var2") %>%
+  group_by(Condition) %>%
+  mutate(Percent = Freq / sum(Freq)*100)
+ggplot(Macrophages.subset.PT, aes(x = Condition, y = Percent, fill = Cell_Type)) +
+  geom_bar(stat = "identity") (Figura.16)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+###Filtramos somente os clusters das células acinares e ductais  
+Acinar_ductal.subset <- subset(GSE125588.combined_FINISHED, idents = c("Acinar", "Ductal"))
+
+###Comandos abaixo são os mesmos encontrados no tutorial do Seurat!
+Acinar_ductal.subset <- NormalizeData(Acinar_ductal.subset, normalization.method = "LogNormalize", scale.factor = 10000)
+Acinar_ductal.subset <- FindVariableFeatures(Acinar_ductal.subset, selection.method = "vst", nfeatures = 2000)
+AcinarAll.genes <- rownames(Acinar_ductal.subset)
+Acinar_ductal.subset <- ScaleData(Acinar_ductal.subset, features = AcinarAll.genes)
+
+Acinar_ductal.subset <- RunPCA(Acinar_ductal.subset, features = VariableFeatures(object = Acinar_ductal.subset))
+st_dev <- Acinar_ductal.subset@reductions$pca@stdev
+var <- st_dev^2
+sum(var[1:40])/ sum(var)##### checando se representa 0.9 da variância
+
+Acinar_ductal.subset <- FindNeighbors(Acinar_ductal.subset, dims = 1:40)
+Acinar_ductal.subset <- FindClusters(Acinar_ductal.subset, resolution = 0.5)
+Acinar_ductal.subset <- RunUMAP(Acinar_ductal.subset, dims = 1:40)
+
+p1<-DimPlot(Acinar_ductal.subset, reduction = "umap", pt.size = 1, label = T)
+p2<-DimPlot(Acinar_ductal.subset, reduction = "umap", group.by = "orig.ident", pt.size = 1)
+p1+p2 (Figura.17)
+
+Acinar_ductal.markers <- FindAllMarkers(Acinar_ductal.subset, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+
+###Como erros no single-cell são comuns, esses clusters abaixo foram excluídos por não apresentarem assinatura das células acinares/ductais (provavelmente doublets)
+Acinar_ductal.subset <- subset(Acinar_ductal.subset, idents = "3", invert = T)
+
+###Depois de excluirmos, precisamos rodar a normalização, PCA, UMAP novamente!!! Portanto, após a remoção refazer os passos do começo dessa seção a partir da normalização!
+
+###Nomeando os clusters das células acinares e ductais
+Acinar_ductal.ids <- c("Acinar","Acinar","Ductal","ADM","Acinar","Acinar","Reg3+","ADM")
+names(Acinar_ductal.ids) <- levels(Acinar_ductal.subset)
+Acinar_ductal.subset <- RenameIdents(Acinar_ductal.subset, Acinar_ductal.ids)
+
+###UMAP com os clusters nomeados
+p1<-DimPlot(Acinar_ductal.subset, reduction = "umap", pt.size = 1)
+p2<-DimPlot(Acinar_ductal.subset, reduction = "umap", group.by = "orig.ident", pt.size = 1)
+p1+p2 (Figura.18)
+
+###Violino plot para visualização da expressão de genes de interesse que marcam um determinado cluster
+VlnPlot(Acinar_ductal.subset, features = c("Gkn3","Krt18","Reg3a","Tff1","Sox9","Spp1","Onecut2","Cela2a","Amy2a5"), pt.size = 0) (Figura.19)
+
+###Barplot das células acinares e ductais
+Acinar_ductal.subset.pt <- table(Idents(Acinar_ductal.subset), Acinar_ductal.subset$orig.ident)
+Acinar_ductal.subset.pt <- as.data.frame(Acinar_ductal.subset.pt)
+Acinar_ductal.subset.pt$Var1 <- as.character(Acinar_ductal.subset.pt$Var1)
+Acinar_ductal.subset.PT = Acinar_ductal.subset.pt %>% rename(Cell_Type = "Var1", Condition = "Var2") %>%
+  group_by(Condition) %>%
+  mutate(Percent = Freq / sum(Freq)*100)
+ggplot(Acinar_ductal.subset.PT, aes(x = Condition, y = Percent, fill = Cell_Type)) +
+  geom_bar(stat = "identity") (Figura.20)
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+###Análise de inferência da trajetória celular utilizando Monocle3, SeuratWrappers
+
+###Nosso arquivo de input é o subset dos CAFs!!!
+CAF.cds <- as.cell_data_set(CAF_Meso.subset)
+CAF.cds <- cluster_cells(cds = CAF.cds, reduction_method = "UMAP")
+CAF.cds <- learn_graph(CAF.cds, use_partition = TRUE)
+
+###Utilizamos essa função pra determinar quais são as "root cells" (células de origem)... Recentemente, é bastante discutido de que a origem dos apCAF seria a partir de células mesoteliais.
+###Sendo assim, com a função abaixo a trajetória irá começar pelas células mesoteliais!!!
+get_earliest_principal_node <- function(CAF.cds, time_bin="Meso"){
+  cell_ids <- which(colData(CAF.cds)[, "ident"] == time_bin)
+  
+  closest_vertex <-
+    CAF.cds@principal_graph_aux[["UMAP"]]$pr_graph_cell_proj_closest_vertex
+  closest_vertex <- as.matrix(closest_vertex[colnames(CAF.cds), ])
+  root_pr_nodes <-
+    igraph::V(principal_graph(CAF.cds)[["UMAP"]])$name[as.numeric(names
+                                                                  (which.max(table(closest_vertex[cell_ids,]))))]
+  
+  root_pr_nodes
+}
+
+###Plot em UMAP da trajetória celular
+CAF.cds <- order_cells(CAF.cds, root_pr_nodes=get_earliest_principal_node(CAF.cds))
+plot_cells(
+  cds = CAF.cds,
+  color_cells_by = "pseudotime",
+  show_trajectory_graph = TRUE, cell_size = 1,
+  graph_label_size = 3
+)
+
+p1<-plot_cells(
+  cds = CAF.cds,
+  color_cells_by = "pseudotime",
+  show_trajectory_graph = TRUE, cell_size = 1,
+  graph_label_size = 3
+)
+p2<-DimPlot(CAF_Meso.subset, reduction = "umap", pt.size = 1, label = TRUE)
+p1+p2 (Figura.21)
+
+###Nosso arquivo de input é o subset das células acinares/ductais!!!
+Acinar_ductal.cds <- as.cell_data_set(Acinar_ductal.subset)
+Acinar_ductal.cds <- cluster_cells(cds = Acinar_ductal.cds, reduction_method = "UMAP")
+Acinar_ductal.cds <- learn_graph(Acinar_ductal.cds, use_partition = TRUE)
+
+###Utilizamos essa função pra determinar quais são as "root cells" (células de origem)... Vem sendo debatido qual a origem da célula tumoral do câncer de pâncreas. Nos modelos animais, é muito comum observarmos essa transição acinar para ductal...
+###Sendo assim, com a função abaixo a trajetória irá começar pelas "Reg3+"!!!
+get_earliest_principal_node <- function(Acinar_ductal.cds, time_bin="Reg3+"){
+  cell_ids <- which(colData(Acinar_ductal.cds)[, "ident"] == time_bin)
+  
+  closest_vertex <-
+    Acinar_ductal.cds@principal_graph_aux[["UMAP"]]$pr_graph_cell_proj_closest_vertex
+  closest_vertex <- as.matrix(closest_vertex[colnames(Acinar_ductal.cds), ])
+  root_pr_nodes <-
+    igraph::V(principal_graph(Acinar_ductal.cds)[["UMAP"]])$name[as.numeric(names
+                                                                  (which.max(table(closest_vertex[cell_ids,]))))]
+  
+  root_pr_nodes
+}
+
+###Plot em UMAP da trajetória celular
+Acinar_ductal.cds <- order_cells(Acinar_ductal.cds, root_pr_nodes=get_earliest_principal_node(Acinar_ductal.cds))
+plot_cells(
+  cds = Acinar_ductal.cds,
+  color_cells_by = "pseudotime",
+  show_trajectory_graph = TRUE, cell_size = 1,
+  graph_label_size = 3
+)
+
+p1<-plot_cells(
+  cds = Acinar_ductal.cds,
+  color_cells_by = "pseudotime",
+  show_trajectory_graph = TRUE, cell_size = 1,
+  graph_label_size = 3
+)
+p2<-DimPlot(Acinar_ductal.subset_Finished, reduction = "umap", pt.size = 1, label = T)
+p1+p2 (Figura.22)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+###Através do pacote TCGAbiolinks temos acesso a base do GDC e podemos fazer o "query" de arquivos do nosso interesse (RNA-Seq, CNV, SNV, miRNA, clínico)
+
+###Buscando dados de SNV na coorte TCGA-PAAD
+PAADmut <- GDCquery_Maf(tumor = "PAAD", pipelines = "mutect2")
+
+###Download dos arquivos
+GDCdownload(PAADmut)
+
+###Comando para preparar os arquivos e carregar no workspace
+GDCprepare(PAADmut)
+
+###Buscando os dados clínicos dos pacientes
+PAAD_clin <- GDCquery_clinic(project = "TCGA-PAAD", type = "Clinical")
+
+###Download dos dados clínicos
+GDCdownload(PAAD_clin)
+
+###Preparo dos dados clínicos e carregamento no workspace
+GDCprepare_clinic(PAAD_clin)
+
+###Adicionamos uma coluna que tenha o mesmo nome em ambos arquivos (SNV e clínico)
+colnames(PAAD_clin)[1] <- "Tumor_Sample_Barcode"
+
+###Precisamos definir os eventos de "vivo" (0) e "morto" (1) como variáveis binárias
+PAAD_clin$Overall_Survival_Status <- 1 # dead
+PAAD_clin$Overall_Survival_Status[which(PAAD_clin$vital_status != "Dead")] <- 0
+
+###Se o paciente não morreu, definimos 'days_to_last_follow_up' como o último dia em que sabemos que o paciente está vivo
+PAAD_clin$time <- PAAD_clin$days_to_death
+PAAD_clin$time[is.na(PAAD_clin$days_to_death)] <- PAAD_clin$days_to_last_follow_up[is.na(PAAD_clin$days_to_death)]
+maf2 <- read.maf(maf = PAADmut, clinicalData = PAAD_clin, isTCGA = TRUE)
+
+###Kaplan-Meier entre pacientes mutados para KRAS e KRASwt
+mafSurvival(
+  maf = maf2,
+  genes = "KRAS",
+  time = 'time',
+  Status = 'Overall_Survival_Status',
+  isTCGA = TRUE
+) (Figura.23)
+
+###Plot com informações gerais (top10 genes mutados, tipo e classificação das variantes, etc)
+plotmafSummary(
+  maf = maf2,
+  rmOutlier = TRUE,
+  addStat = 'median',
+  dashboard = TRUE
+) (Figura.24)
+
+###Top10 genes mutados
+oncoplot(
+  maf = maf2,
+  top = 10
+) (Figura.25)
+
+###Kaplan-Meier para pacientes mutados para KRAS/TP53
+geneset <- c("KRAS","TP53")
+mafSurvGroup(maf = maf2,
+            geneSet = geneset,
+            time = 'time',
+            Status = 'Overall_Survival_Status') (Figura.26)
+
+###Matriz de correlação entre os 25 genes mais mutados (co-ocorrência ou mutuamente exclusivos)
+###Em PDF a resolução ficou melhor. Vai ficar salvo no diretório em que o R está instalado (no meu caso foi para os 'documentos')
+pdf('somatic_interaction_top25.pdf')
+somaticInteractions(maf = maf2, top = 25, pvalue = c(0.05, 0.1)) 
+dev.off() (Figura.27)
