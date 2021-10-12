@@ -106,7 +106,7 @@ top4 <- Cell.Markers %>% group_by(cluster) %>% top_n(n = 4, wt = avg_log2FC)
 ###Ordenando manualmente os clusters do mais abundante para o menos abundante
 my_levels <- c("Macrophages", "Fibroblasts", "Acinar", "ETC", "Lymphocytes", "Granulocytes", "RBC", "Endothelial", "Endocrine", "Mesothelial", "DC", "Plasma", "pDC")
 GSE125588_ALLdata.combined@active.ident <- factor(x = GSE125588_ALLdata.combined@active.ident, levels = my_levels)
-DoHeatmap(GSE125588_ALLdata.combined, features = features, angle = 90, size = 3) + NoLegend() (Figura.6)
+DoHeatmap(GSE125588_ALLdata.combined, features = top4, angle = 90, size = 3) + NoLegend() (Figura.6)
 
 ###Função para os barplots! Assim temos uma ideia da proporção de cada tipo celular nas diferentes condições biológicas (pâncreas normal, lesão pré-maligna e tumor)
 GSE125588.combined.pt <- table(Idents(GSE125588_ALLdata.combined), GSE125588_ALLdata.combined$orig.ident)
