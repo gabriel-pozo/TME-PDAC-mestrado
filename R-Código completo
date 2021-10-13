@@ -183,7 +183,7 @@ VlnPlot(CAF_Meso.subset, features = c("Msln","Upk3b","Nkain4","Cd74","H2-Aa","H2
 VlnPlot(CAF_Meso.subset, features = c("Cxcl14","Il6","Has1","Ly6a","Col1a1","Cxcl13"), pt.size = 0) (Figura.12)
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ###Isolamos o cluster dos macrófagos e conduzimos os mesmos passos feitos para os CAFs
-Macrophages.subset <- subset(GSE125588.combined_FINISHED, idents = c("Macrophages"))
+Macrophages.subset <- subset(GSE125588_ALLdata.combined, idents = c("Macrophages"))
 
 ###Comandos abaixo são os mesmos encontrados no tutorial do Seurat!
 Macrophages.subset <- NormalizeData(Macrophages.subset, normalization.method = "LogNormalize", scale.factor = 10000)
@@ -235,7 +235,7 @@ ggplot(Macrophages.subset.PT, aes(x = Condition, y = Percent, fill = Cell_Type))
   geom_bar(stat = "identity") (Figura.16)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ###Filtramos somente os clusters das células acinares e ductais  
-Acinar_ductal.subset <- subset(GSE125588.combined_FINISHED, idents = c("Acinar", "Ductal"))
+Acinar_ductal.subset <- subset(GSE125588_ALLdata.combined, idents = c("Acinar", "Ductal"))
 
 ###Comandos abaixo são os mesmos encontrados no tutorial do Seurat!
 Acinar_ductal.subset <- NormalizeData(Acinar_ductal.subset, normalization.method = "LogNormalize", scale.factor = 10000)
