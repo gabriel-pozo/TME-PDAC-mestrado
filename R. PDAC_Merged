@@ -1,0 +1,259 @@
+library(ggplot2)
+library(cellranger)
+library(Seurat)
+library(patchwork)
+library(dplyr)
+library(readr)
+library(devtools)
+library(remotes)
+library(SeuratWrappers)
+library(monocle3)
+library(RColorBrewer)
+library(CellChat)
+
+1. Data processing
+
+#Loading data and creating Seurat objects
+
+AdjNorm_TISSUE_1.data <- Read10X(data.dir = "~/GSE155698_RAW/AdjNorm_TISSUE_1/filtered_feature_bc_matrix/")
+AdjNorm_TISSUE_1 <- CreateSeuratObject(counts = AdjNorm_TISSUE_1.data, project = 'AdjNorm_TISSUE_1', min.cells = 3, min.features = 200)
+
+AdjNorm_TISSUE_2.data <- Read10X(data.dir = "~/GSE155698_RAW/AdjNorm_TISSUE_2/filtered_feature_bc_matrix/")
+AdjNorm_TISSUE_2 <- CreateSeuratObject(counts = AdjNorm_TISSUE_2.data, project = 'AdjNorm_TISSUE_2', min.cells = 3, min.features = 200)
+
+AdjNorm_TISSUE_3.data <- Read10X(data.dir = "~/GSE155698_RAW/AdjNorm_TISSUE_3/filtered_feature_bc_matrix/")
+AdjNorm_TISSUE_3 <- CreateSeuratObject(counts = AdjNorm_TISSUE_3.data, project = 'AdjNorm_TISSUE_3', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_1.data <- Read10X(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_1/filtered_feature_bc_matrix/")
+PDAC_TISSUE_1 <- CreateSeuratObject(counts = PDAC_TISSUE_1.data, project = 'PDAC_TISSUE_1', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_2.data <- Read10X(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_2/filtered_feature_bc_matrix/")
+PDAC_TISSUE_2 <- CreateSeuratObject(counts = PDAC_TISSUE_2.data, project = 'PDAC_TISSUE_2', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_3.data <- Read10X(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_3/filtered_feature_bc_matrix/")
+PDAC_TISSUE_3 <- CreateSeuratObject(counts = PDAC_TISSUE_3.data, project = 'PDAC_TISSUE_3', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_4.data <- Read10X(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_4/filtered_feature_bc_matrix/")
+PDAC_TISSUE_4 <- CreateSeuratObject(counts = PDAC_TISSUE_4.data, project = 'PDAC_TISSUE_4', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_5.data <- Read10X(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_5/filtered_feature_bc_matrix/")
+PDAC_TISSUE_5 <- CreateSeuratObject(counts = PDAC_TISSUE_5.data, project = 'PDAC_TISSUE_5', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_6.data <- Read10X(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_6/filtered_feature_bc_matrix/")
+PDAC_TISSUE_6 <- CreateSeuratObject(counts = PDAC_TISSUE_6.data, project = 'PDAC_TISSUE_6', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_7.data <- Read10X(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_7/filtered_feature_bc_matrix/")
+PDAC_TISSUE_7 <- CreateSeuratObject(counts = PDAC_TISSUE_7.data, project = 'PDAC_TISSUE_7', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_8.data <- Read10X(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_8/filtered_feature_bc_matrix/")
+PDAC_TISSUE_8 <- CreateSeuratObject(counts = PDAC_TISSUE_8.data, project = 'PDAC_TISSUE_8', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_9.data <- Read10X(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_9/filtered_feature_bc_matrix/")
+PDAC_TISSUE_9 <- CreateSeuratObject(counts = PDAC_TISSUE_9.data, project = 'PDAC_TISSUE_9', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_10.data <- Read10X(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_10/filtered_feature_bc_matrix/")
+PDAC_TISSUE_10 <- CreateSeuratObject(counts = PDAC_TISSUE_10.data, project = 'PDAC_TISSUE_10', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_11A.data <- Read10X(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_11A/filtered_feature_bc_matrix/")
+PDAC_TISSUE_11A <- CreateSeuratObject(counts = PDAC_TISSUE_11A.data, project = 'PDAC_TISSUE_11A', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_11B.data <- Read10X(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_11B/filtered_feature_bc_matrix/")
+PDAC_TISSUE_11B <- CreateSeuratObject(counts = PDAC_TISSUE_11B.data, project = 'PDAC_TISSUE_11B', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_12.data <- Read10X(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_12/filtered_feature_bc_matrix/")
+PDAC_TISSUE_12 <- CreateSeuratObject(counts = PDAC_TISSUE_12.data, project = 'PDAC_TISSUE_12', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_13.data <- Read10X(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_13/filtered_feature_bc_matrix/")
+PDAC_TISSUE_13 <- CreateSeuratObject(counts = PDAC_TISSUE_13.data, project = 'PDAC_TISSUE_13', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_14.data <- Read10X_h5(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_14/filtered_feature_bc_matrix.h5")
+PDAC_TISSUE_14 <- CreateSeuratObject(counts = PDAC_TISSUE_14.data, project = 'PDAC_TISSUE_14', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_15.data <- Read10X(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_15/filtered_feature_bc_matrix/")
+PDAC_TISSUE_15 <- CreateSeuratObject(counts = PDAC_TISSUE_15.data, project = 'PDAC_TISSUE_15', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_16.data <- Read10X(data.dir = "~/GSE155698_RAW/PDAC_TISSUE_16/filtered_feature_bc_matrix/")
+PDAC_TISSUE_16 <- CreateSeuratObject(counts = PDAC_TISSUE_16.data, project = 'PDAC_TISSUE_16', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_17.data <- Read10X(data.dir = "~/GSE154778_RAW/PDAC_PT01/")
+PDAC_TISSUE_17 <- CreateSeuratObject(counts = PDAC_TISSUE_17.data, project = 'PDAC_TISSUE_17', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_18.data <- Read10X(data.dir = "~/GSE154778_RAW/PDAC_PT02/")
+PDAC_TISSUE_18 <- CreateSeuratObject(counts = PDAC_TISSUE_18.data, project = 'PDAC_TISSUE_18', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_19.data <- Read10X(data.dir = "~/GSE154778_RAW/PDAC_PT03/")
+PDAC_TISSUE_19 <- CreateSeuratObject(counts = PDAC_TISSUE_19.data, project = 'PDAC_TISSUE_19', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_20.data <- Read10X(data.dir = "~/GSE154778_RAW/PDAC_PT04/")
+PDAC_TISSUE_20 <- CreateSeuratObject(counts = PDAC_TISSUE_20.data, project = 'PDAC_TISSUE_20', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_21.data <- Read10X(data.dir = "~/GSE154778_RAW/PDAC_PT05/")
+PDAC_TISSUE_21 <- CreateSeuratObject(counts = PDAC_TISSUE_21.data, project = 'PDAC_TISSUE_21', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_22.data <- Read10X(data.dir = "~/GSE154778_RAW/PDAC_PT06/")
+PDAC_TISSUE_22 <- CreateSeuratObject(counts = PDAC_TISSUE_22.data, project = 'PDAC_TISSUE_22', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_23.data <- Read10X(data.dir = "~/GSE154778_RAW/PDAC_PT07/")
+PDAC_TISSUE_23 <- CreateSeuratObject(counts = PDAC_TISSUE_23.data, project = 'PDAC_TISSUE_23', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_24.data <- Read10X(data.dir = "~/GSE154778_RAW/PDAC_PT08/")
+PDAC_TISSUE_24 <- CreateSeuratObject(counts = PDAC_TISSUE_24.data, project = 'PDAC_TISSUE_24', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_25.data <- Read10X(data.dir = "~/GSE154778_RAW/PDAC_PT09/")
+PDAC_TISSUE_25 <- CreateSeuratObject(counts = PDAC_TISSUE_25.data, project = 'PDAC_TISSUE_25', min.cells = 3, min.features = 200)
+
+PDAC_TISSUE_26.data <- Read10X(data.dir = "~/GSE154778_RAW/PDAC_PT10/")
+PDAC_TISSUE_26 <- CreateSeuratObject(counts = PDAC_TISSUE_26.data, project = 'PDAC_TISSUE_26', min.cells = 3, min.features = 200)
+
+MET_01.data <- Read10X(data.dir = "~/GSE154778_RAW/PDAC_MET01/")
+MET_01 <- CreateSeuratObject(counts = MET_01.data, project = 'MET_01', min.cells = 3, min.features = 200)
+
+MET_03.data <- Read10X(data.dir = "~/GSE154778_RAW/PDAC_MET03/")
+MET_02 <- CreateSeuratObject(counts = MET_03.data, project = 'MET_03', min.cells = 3, min.features = 200)
+
+MET_04.data <- Read10X(data.dir = "~/GSE154778_RAW/PDAC_MET04/")
+MET_04 <- CreateSeuratObject(counts = MET_04.data, project = 'MET_04', min.cells = 3, min.features = 200)
+
+MET_05.data <- Read10X(data.dir = "~/GSE154778_RAW/PDAC_MET05/")
+MET_05 <- CreateSeuratObject(counts = MET_05.data, project = 'MET_05', min.cells = 3, min.features = 200)
+
+MET_06.data <- Read10X(data.dir = "~/GSE154778_RAW/PDAC_MET06/")
+MET_06 <- CreateSeuratObject(counts = MET_06.data, project = 'MET_06', min.cells = 3, min.features = 200)
+
+#Condition Metadata
+MET_01$DiseaseState <-"MET"
+MET_03$DiseaseState <-"MET"
+MET_04$DiseaseState <-"MET"
+MET_05$DiseaseState <-"MET"
+MET_06$DiseaseState <-"MET"
+PDAC_TISSUE_26$DiseaseState <-"PDAC"
+PDAC_TISSUE_25$DiseaseState <-"PDAC"
+PDAC_TISSUE_24$DiseaseState <-"PDAC"
+PDAC_TISSUE_23$DiseaseState <-"PDAC"
+PDAC_TISSUE_22$DiseaseState <-"PDAC"
+PDAC_TISSUE_21$DiseaseState <-"PDAC"
+PDAC_TISSUE_20$DiseaseState <-"PDAC"
+PDAC_TISSUE_19$DiseaseState <-"PDAC"
+PDAC_TISSUE_18$DiseaseState <-"PDAC"
+PDAC_TISSUE_17$DiseaseState <-"PDAC"
+PDAC_TISSUE_16$DiseaseState <-"PDAC"
+PDAC_TISSUE_15$DiseaseState <-"PDAC"
+PDAC_TISSUE_13$DiseaseState <-"PDAC"
+PDAC_TISSUE_14$DiseaseState <-"PDAC"
+PDAC_TISSUE_12$DiseaseState <-"PDAC"
+PDAC_TISSUE_11B$DiseaseState <-"PDAC"  
+PDAC_TISSUE_11A$DiseaseState <-"PDAC"
+PDAC_TISSUE_10$DiseaseState <-"PDAC"
+PDAC_TISSUE_9$DiseaseState <-"PDAC"
+PDAC_TISSUE_8$DiseaseState <-"PDAC"
+PDAC_TISSUE_7$DiseaseState <-"PDAC"
+PDAC_TISSUE_6$DiseaseState <-"PDAC"
+PDAC_TISSUE_5$DiseaseState <-"PDAC"
+PDAC_TISSUE_4$DiseaseState <-"PDAC"
+PDAC_TISSUE_3$DiseaseState <-"PDAC"
+PDAC_TISSUE_2$DiseaseState <-"PDAC"
+PDAC_TISSUE_1$DiseaseState <-"PDAC"
+AdjNorm_TISSUE_1$DiseaseState <- "AdjNorm"
+AdjNorm_TISSUE_3$DiseaseState <- "AdjNorm"
+AdjNorm_TISSUE_2$DiseaseState <- "AdjNorm"
+
+#Merging the objects
+
+Primary_Tumor.combined <- merge(PDAC_TISSUE_1, y = c(PDAC_TISSUE_2, PDAC_TISSUE_3, PDAC_TISSUE_4, 
+                                                   PDAC_TISSUE_5, PDAC_TISSUE_6, PDAC_TISSUE_7, 
+                                                   PDAC_TISSUE_8, PDAC_TISSUE_9, PDAC_TISSUE_10, 
+                                                   PDAC_TISSUE_11A, PDAC_TISSUE_11B, PDAC_TISSUE_12,
+                                                   PDAC_TISSUE_13, PDAC_TISSUE_14, PDAC_TISSUE_15, 
+                                                   PDAC_TISSUE_16, PDAC_TISSUE_17, PDAC_TISSUE_18, PDAC_TISSUE_19,
+                                                   PDAC_TISSUE_20, PDAC_TISSUE_21, PDAC_TISSUE_22, PDAC_TISSUE_23,
+                                                   PDAC_TISSUE_24, PDAC_TISSUE_25, PDAC_TISSUE_26))
+
+#Checking samples present in the object
+
+table(Primary_Tumor.combined$orig.ident)
+Idents(object = Primary_Tumor.combined) <- 'ID'
+levels(Primary_Tumor.combined)
+
+#Quality control
+
+Primary_Tumor.combined[["percent.mt"]] <- PercentageFeatureSet(Primary_Tumor.combined, pattern = "^MT-")
+VlnPlot(Primary_Tumor.combined, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, pt.size = .0)
+s.genes <- cc.genes$s.genes
+g2m.genes <- cc.genes$g2m.genes
+Primary_Tumor.combined <- CellCycleScoring(Primary_Tumor.combined, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
+
+2. Integrated Workflow
+
+#Using SCTransform
+Primary_Tumor.combined.list <- SplitObject(Primary_Tumor.combined, split.by = "orig.ident")
+Primary_Tumor.combined.list <- lapply(X = Primary_Tumor.combined.list, FUN = SCTransform)
+features <- SelectIntegrationFeatures(object.list = Primary_Tumor.combined.list, nfeatures = 3000)
+Primary_Tumor.combined.list <- PrepSCTIntegration(object.list = Primary_Tumor.combined.list, anchor.features = features)
+
+Primary_Tumor.combined.anchors <- FindIntegrationAnchors(object.list = Primary_Tumor.combined.list, normalization.method = "SCT",
+    anchor.features = features)
+Primary_Tumor.combined.sct <- IntegrateData(anchorset = Primary_Tumor.combined.anchors, normalization.method = "SCT")
+Primary_Tumor.combined.sct <- RunPCA(Primary_Tumor.combined.sct, npcs = 50, verbose = FALSE)
+st_dev <- Primary_Tumor.combined.sct@reductions$pca@stdev
+var <- st_dev^2
+for(i in 1:length(var)){
+  total <- sum(var)
+  numerator <- sum(var[1:i])
+  expvar <- numerator/total
+  if(EndVar == 0){
+    if(expvar > 0.9){
+      EndVar <- EndVar + 1
+      PCNum <- i
+    }
+  }
+}
+sum(var[1:nPCA])/ sum(var)
+
+Primary_Tumor.combined.sct <- RunUMAP(Primary_Tumor.combined.sct, reduction = "pca", dims = 1:50)
+Primary_Tumor.combined.sct <- FindNeighbors(Primary_Tumor.combined.sct, reduction = "pca", dims = 1:50)
+Primary_Tumor.combined.sct <- FindClusters(Primary_Tumor.combined.sct, resolution = 1.2)
+
+p1<-DimPlot(Primary_Tumor.combined.sct, reduction = "umap", label = TRUE)
+p2<-DimPlot(Primary_Tumor.combined.sct, reduction = "umap", group.by = "ID")
+p1+p2
+
+#Using log-normalize
+
+Primary_Tumor.combined.list <- SplitObject(Primary_Tumor.combined, split.by = "orig.ident")
+Primary_Tumor.combined.list <- lapply(X = Primary_Tumor.combined.list, FUN = function(x) {
+  x <- NormalizeData(x)
+  x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+features <- SelectIntegrationFeatures(object.list = Primary_Tumor.combined.list)
+Primary_Tumor.combined.anchors <- FindIntegrationAnchors(object.list = Primary_Tumor.combined.list, anchor.features = features)
+ALLPrimary_Tumor.combined <- IntegrateData(anchorset = Primary_Tumor.combined.anchors)
+
+DefaultAssay(ALLPrimary_Tumor.combined) <- "integrated"
+
+ALLPrimary_Tumor.combined <- ScaleData(ALLPrimary_Tumor.combined, verbose = FALSE)
+ALLPrimary_Tumor.combined <- RunPCA(ALLPrimary_Tumor.combined, npcs = 50, verbose = FALSE)
+st_dev <- ALLPrimary_Tumor.combined@reductions$pca@stdev
+var <- st_dev^2
+for(i in 1:length(var)){
+  total <- sum(var)
+  numerator <- sum(var[1:i])
+  expvar <- numerator/total
+  if(EndVar == 0){
+    if(expvar > 0.9){
+      EndVar <- EndVar + 1
+      PCNum <- i
+    }
+  }
+}
+sum(var[1:nPCA])/ sum(var)
+
+ALLPrimary_Tumor.combined <- RunUMAP(ALLPrimary_Tumor.combined, reduction = "pca", dims = 1:50)
+ALLPrimary_Tumor.combined <- FindNeighbors(ALLPrimary_Tumor.combined, reduction = "pca", dims = 1:50)
+ALLPrimary_Tumor.combined <- FindClusters(ALLPrimary_Tumor.combined, resolution = 1.2)
+
+p1<-DimPlot(ALLPrimary_Tumor.combined, reduction = "umap", label = TRUE)
+p2<-DimPlot(ALLPrimary_Tumor.combined, reduction = "umap", group.by = "ID")
+p1+p2
+
+
+Cluster.markers <- FindAllMarkers(ALLPrimary_Tumor.combined, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25, test.use = "roc")
