@@ -267,16 +267,15 @@ AllData.combined <- merge(PDAC_TISSUE_1, y = c(PDAC_TISSUE_2, PDAC_TISSUE_3, PDA
                                                    PDAC_TISSUE_5, PDAC_TISSUE_6, PDAC_TISSUE_7, 
                                                    PDAC_TISSUE_8, PDAC_TISSUE_9, PDAC_TISSUE_10, 
                                                    PDAC_TISSUE_11A, PDAC_TISSUE_11B, PDAC_TISSUE_12,
-                                                   PDAC_TISSUE_13, PDAC_TISSUE_14, PDAC_TISSUE_15, 
-                                                   PDAC_TISSUE_16, PDAC_TISSUE_17, PDAC_TISSUE_18, PDAC_TISSUE_19,
+                                                   PDAC_TISSUE_13, PDAC_TISSUE_15, PDAC_TISSUE_16,
+                                                   PDAC_TISSUE_17, PDAC_TISSUE_18, PDAC_TISSUE_19,
                                                    PDAC_TISSUE_20, PDAC_TISSUE_21, PDAC_TISSUE_22, PDAC_TISSUE_23,
-                                                   PDAC_TISSUE_24, PDAC_TISSUE_25, PDAC_TISSUE_26, AdjNorm_TISSUE_1, AdjNorm_TISSUE_2, AdjNorm_TISSUE_3,
-                                                   MET_01, MET_03, MET_04, MET_05, MET_06))
+                                                   PDAC_TISSUE_24, PDAC_TISSUE_25, PDAC_TISSUE_26, AdjNorm_TISSUE_1, AdjNorm_TISSUE_2,
+                                                   AdjNorm_TISSUE_3, MET_01, MET_03, MET_04, MET_05, MET_06))
 
 #Checking samples present in the object
 
 table(AllData.combined$orig.ident)
-Idents(object = AllData.combined) <- 'ID'
 levels(AllData.combined)
 
 #Quality control
@@ -286,13 +285,11 @@ VlnPlot(AllData.combined, features = c("nFeature_RNA", "nCount_RNA", "percent.mt
 s.genes <- cc.genes$s.genes
 g2m.genes <- cc.genes$g2m.genes
 AllData.combined <- CellCycleScoring(AllData.combined, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
-AllData.combined[["DiseaseState"]] <- AllData.combined$DiseaseState
-AllData.combined[["DiseaseGrade"]] <- AllData.combined$DiseaseGrade
-AllData.combined[["MetastaticSite"]] <- AllData.combined$MetastaticSite
+
 2. Integrated Workflow
 
 #Using SCTransform
-AllData.combined.list <- SplitObject(AllData.combined, split.by = "ID")
+AllData.combined.list <- SplitObject(AllData.combined, split.by = "orig.ident")
 AllData.combined.list <- lapply(X = AllData.combined.list, FUN = SCTransform)
 features <- SelectIntegrationFeatures(object.list = AllData.combined.list, nfeatures = 3000)
 AllData.combined.list <- PrepSCTIntegration(object.list = AllData.combined.list, anchor.features = features)
