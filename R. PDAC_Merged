@@ -124,142 +124,177 @@ MET_06 <- CreateSeuratObject(counts = MET_06.data, project = 'MET_06', min.cells
 MET_01$DiseaseState <-"MET"
 MET_01$DiseaseGrade <-"NA"
 MET_01$MetastaticSite <-"Liver"
+MET_01$ID <- "MET_01"
 
 MET_03$DiseaseState <-"MET"
 MET_03$DiseaseGrade <-"NA"
 MET_03$MetastaticSite <-"Omentum"
+MET_03$ID <- "MET_03"
 
 MET_04$DiseaseState <-"MET"
 MET_04$DiseaseGrade <-"NA"
 MET_04$MetastaticSite <-"Liver"
+MET_04$ID <- "MET_04"
 
 MET_05$DiseaseState <-"MET"
 MET_05$DiseaseGrade <-"NA"
 MET_05$MetastaticSite <-"Liver"
+MET_05$ID <- "MET_05"
 
 MET_06$DiseaseState <-"MET"
 MET_06$DiseaseGrade <-"NA"
 MET_06$MetastaticSite <-"Liver"
+MET_06$ID <- "MET_06"
 
 PDAC_TISSUE_26$MetastaticSite <- "NA"
 PDAC_TISSUE_26$DiseaseGrade <-"2"
 PDAC_TISSUE_26$DiseaseState <-"PDAC"
+PDAC_TISSUE_26$ID <- "PDAC_TISSUE_26"
 
 PDAC_TISSUE_25$MetastaticSite <- "NA"
 PDAC_TISSUE_25$DiseaseGrade <-"2"
 PDAC_TISSUE_25$DiseaseState <-"PDAC"
+PDAC_TISSUE_25$ID <- "PDAC_TISSUE_25"
 
 PDAC_TISSUE_24$MetastaticSite <- "NA"
 PDAC_TISSUE_24$DiseaseGrade <-"2"
 PDAC_TISSUE_24$DiseaseState <-"PDAC"
+PDAC_TISSUE_24$ID <- "PDAC_TISSUE_24"
 
 PDAC_TISSUE_23$MetastaticSite <- "NA"
 PDAC_TISSUE_23$DiseaseGrade <-"3"
 PDAC_TISSUE_23$DiseaseState <-"PDAC"
+PDAC_TISSUE_23$ID <- "PDAC_TISSUE_23"
 
 PDAC_TISSUE_22$MetastaticSite <- "NA"
 PDAC_TISSUE_22$DiseaseGrade <-"2"
 PDAC_TISSUE_22$DiseaseState <-"PDAC"
+PDAC_TISSUE_22$ID <- "PDAC_TISSUE_22"
 
 PDAC_TISSUE_21$MetastaticSite <- "NA"
 PDAC_TISSUE_21$DiseaseGrade <-"2"
 PDAC_TISSUE_21$DiseaseState <-"PDAC"
+PDAC_TISSUE_21$ID <- "PDAC_TISSUE_21"
 
 PDAC_TISSUE_20$MetastaticSite <- "NA"
 PDAC_TISSUE_20$DiseaseGrade <-"3"
 PDAC_TISSUE_20$DiseaseState <-"PDAC"
+PDAC_TISSUE_20$ID <- "PDAC_TISSUE_20"
 
 PDAC_TISSUE_19$MetastaticSite <- "NA"
 PDAC_TISSUE_19$DiseaseGrade <-"4"
 PDAC_TISSUE_19$DiseaseState <-"PDAC"
+PDAC_TISSUE_19$ID <- "PDAC_TISSUE_19"
 
 PDAC_TISSUE_18$MetastaticSite <- "NA"
 PDAC_TISSUE_18$DiseaseGrade <-"2"
 PDAC_TISSUE_18$DiseaseState <-"PDAC"
+PDAC_TISSUE_18$ID <- "PDAC_TISSUE_18"
 
 PDAC_TISSUE_17$MetastaticSite <- "NA"
 PDAC_TISSUE_17$DiseaseGrade <-"4"
 PDAC_TISSUE_17$DiseaseState <-"PDAC"
+PDAC_TISSUE_17$ID <- "PDAC_TISSUE_17"
 
 PDAC_TISSUE_16$MetastaticSite <- "NA"
 PDAC_TISSUE_16$DiseaseGrade <-"NA"
 PDAC_TISSUE_16$DiseaseState <-"PDAC"
+PDAC_TISSUE_16$ID <- "PDAC_TISSUE_16"
 
 PDAC_TISSUE_15$MetastaticSite <- "NA"
 PDAC_TISSUE_15$DiseaseGrade <-"NA"
 PDAC_TISSUE_15$DiseaseState <-"PDAC"
+PDAC_TISSUE_15$ID <- "PDAC_TISSUE_15"
 
 PDAC_TISSUE_13$MetastaticSite <- "NA"
 PDAC_TISSUE_13$DiseaseGrade <-"NA"
 PDAC_TISSUE_13$DiseaseState <-"PDAC"
+PDAC_TISSUE_13$ID <- "PDAC_TISSUE_13"
 
 PDAC_TISSUE_14$MetastaticSite <- "NA"
 PDAC_TISSUE_14$DiseaseGrade <-"NA"
 PDAC_TISSUE_14$DiseaseState <-"PDAC"
+PDAC_TISSUE_14$ID <- "PDAC_TISSUE_14"
 
 PDAC_TISSUE_12$MetastaticSite <- "NA"
 PDAC_TISSUE_12$DiseaseGrade <-"NA"
 PDAC_TISSUE_12$DiseaseState <-"PDAC"
+PDAC_TISSUE_12$ID <- "PDAC_TISSUE_12"
 
 PDAC_TISSUE_11B$MetastaticSite <- "NA"
 PDAC_TISSUE_11B$DiseaseGrade <-"NA"
 PDAC_TISSUE_11B$DiseaseState <-"PDAC"
+PDAC_TISSUE_11B$ID <- "PDAC_TISSUE_11B"
 
 PDAC_TISSUE_11A$MetastaticSite <- "NA"
 PDAC_TISSUE_11A$DiseaseGrade <-"NA"
 PDAC_TISSUE_11A$DiseaseState <-"PDAC"
+PDAC_TISSUE_11A$ID <- "PDAC_TISSUE_11A"
 
 PDAC_TISSUE_10$MetastaticSite <- "NA"
 PDAC_TISSUE_10$DiseaseGrade <-"NA"
 PDAC_TISSUE_10$DiseaseState <-"PDAC"
+PDAC_TISSUE_10$ID <- "PDAC_TISSUE_10"
 
 PDAC_TISSUE_9$MetastaticSite <- "NA"
 PDAC_TISSUE_9$DiseaseGrade <-"NA"
 PDAC_TISSUE_9$DiseaseState <-"PDAC"
+PDAC_TISSUE_9$ID <- "PDAC_TISSUE_9"
 
 PDAC_TISSUE_8$MetastaticSite <- "NA"
 PDAC_TISSUE_8$DiseaseGrade <-"NA"
 PDAC_TISSUE_8$DiseaseState <-"PDAC"
+PDAC_TISSUE_8$ID <- "PDAC_TISSUE_8"
 
 PDAC_TISSUE_7$MetastaticSite <- "NA"
 PDAC_TISSUE_7$DiseaseGrade <-"NA"
 PDAC_TISSUE_7$DiseaseState <-"PDAC"
+PDAC_TISSUE_7$ID <- "PDAC_TISSUE_7"
 
 PDAC_TISSUE_6$MetastaticSite <- "NA"
 PDAC_TISSUE_6$DiseaseGrade <-"NA"
 PDAC_TISSUE_6$DiseaseState <-"PDAC"
+PDAC_TISSUE_6$ID <- "PDAC_TISSUE_6"
 
 PDAC_TISSUE_5$MetastaticSite <- "NA"
 PDAC_TISSUE_5$DiseaseGrade <-"NA"
 PDAC_TISSUE_5$DiseaseState <-"PDAC"
+PDAC_TISSUE_5$ID <- "PDAC_TISSUE_5"
 
 PDAC_TISSUE_4$MetastaticSite <- "NA"
 PDAC_TISSUE_4$DiseaseGrade <-"NA"
 PDAC_TISSUE_4$DiseaseState <-"PDAC"
+PDAC_TISSUE_4$ID <- "PDAC_TISSUE_4"
 
 PDAC_TISSUE_3$MetastaticSite <- "NA"
 PDAC_TISSUE_3$DiseaseGrade <-"NA"
 PDAC_TISSUE_3$DiseaseState <-"PDAC"
+PDAC_TISSUE_3$ID <- "PDAC_TISSUE_3"
 
 PDAC_TISSUE_2$MetastaticSite <- "NA"
 PDAC_TISSUE_2$DiseaseGrade <-"NA"
 PDAC_TISSUE_2$DiseaseState <-"PDAC"
+PDAC_TISSUE_2$ID <- "PDAC_TISSUE_2"
 
 PDAC_TISSUE_1$MetastaticSite <- "NA"
 PDAC_TISSUE_1$DiseaseGrade <-"NA"
 PDAC_TISSUE_1$DiseaseState <-"PDAC"
+PDAC_TISSUE_1$ID <- "PDAC_TISSUE_1"
 
 AdjNorm_TISSUE_1$MetastaticSite <- "NA"
 AdjNorm_TISSUE_1$DiseaseGrade <-"NA"
 AdjNorm_TISSUE_1$DiseaseState <- "AdjNorm"
+AdjNorm_TISSUE_1$ID <- "AdjNorm_TISSUE_1"
 
 AdjNorm_TISSUE_3$MetastaticSite <- "NA"
 AdjNorm_TISSUE_3$DiseaseGrade <-"NA"
 AdjNorm_TISSUE_3$DiseaseState <- "AdjNorm"
+AdjNorm_TISSUE_3$ID <- "AdjNorm_TISSUE_3"
 
 AdjNorm_TISSUE_2$MetastaticSite <- "NA"
 AdjNorm_TISSUE_2$DiseaseGrade <-"NA"
 AdjNorm_TISSUE_2$DiseaseState <- "AdjNorm"
+AdjNorm_TISSUE_2$ID <- "AdjNorm_TISSUE_2"
 
 #Merging the objects
 
@@ -267,7 +302,7 @@ AllData.combined <- merge(PDAC_TISSUE_1, y = c(PDAC_TISSUE_2, PDAC_TISSUE_3, PDA
                                                    PDAC_TISSUE_5, PDAC_TISSUE_6, PDAC_TISSUE_7, 
                                                    PDAC_TISSUE_8, PDAC_TISSUE_9, PDAC_TISSUE_10, 
                                                    PDAC_TISSUE_11A, PDAC_TISSUE_11B, PDAC_TISSUE_12,
-                                                   PDAC_TISSUE_13, PDAC_TISSUE_15, PDAC_TISSUE_16,
+                                                   PDAC_TISSUE_14, PDAC_TISSUE_13, PDAC_TISSUE_15, PDAC_TISSUE_16,
                                                    PDAC_TISSUE_17, PDAC_TISSUE_18, PDAC_TISSUE_19,
                                                    PDAC_TISSUE_20, PDAC_TISSUE_21, PDAC_TISSUE_22, PDAC_TISSUE_23,
                                                    PDAC_TISSUE_24, PDAC_TISSUE_25, PDAC_TISSUE_26, AdjNorm_TISSUE_1, AdjNorm_TISSUE_2,
@@ -276,6 +311,7 @@ AllData.combined <- merge(PDAC_TISSUE_1, y = c(PDAC_TISSUE_2, PDAC_TISSUE_3, PDA
 #Checking samples present in the object
 
 table(AllData.combined$orig.ident)
+Idents(object = AllData.combined) <- 'ID'
 levels(AllData.combined)
 
 #Quality control
@@ -289,7 +325,7 @@ AllData.combined <- CellCycleScoring(AllData.combined, s.features = s.genes, g2m
 2. Integrated Workflow
 
 #Using SCTransform
-AllData.combined.list <- SplitObject(AllData.combined, split.by = "orig.ident")
+AllData.combined.list <- SplitObject(AllData.combined, split.by = "ID")
 AllData.combined.list <- lapply(X = AllData.combined.list, FUN = SCTransform)
 features <- SelectIntegrationFeatures(object.list = AllData.combined.list, nfeatures = 3000)
 AllData.combined.list <- PrepSCTIntegration(object.list = AllData.combined.list, anchor.features = features)
