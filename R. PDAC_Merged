@@ -10,6 +10,9 @@ library(SeuratWrappers)
 library(monocle3)
 library(RColorBrewer)
 library(CellChat)
+library(pheatmap)
+library(corrplot)
+library(matrix)
 
 1. Data processing
 
@@ -302,11 +305,16 @@ AllData.combined <- merge(PDAC_TISSUE_1, y = c(PDAC_TISSUE_2, PDAC_TISSUE_3, PDA
                                                    PDAC_TISSUE_5, PDAC_TISSUE_6, PDAC_TISSUE_7, 
                                                    PDAC_TISSUE_8, PDAC_TISSUE_9, PDAC_TISSUE_10, 
                                                    PDAC_TISSUE_11A, PDAC_TISSUE_11B, PDAC_TISSUE_12,
-                                                   PDAC_TISSUE_14, PDAC_TISSUE_13, PDAC_TISSUE_15, PDAC_TISSUE_16,
+                                                   PDAC_TISSUE_13, PDAC_TISSUE_14, PDAC_TISSUE_15, PDAC_TISSUE_16,
                                                    PDAC_TISSUE_17, PDAC_TISSUE_18, PDAC_TISSUE_19,
                                                    PDAC_TISSUE_20, PDAC_TISSUE_21, PDAC_TISSUE_22, PDAC_TISSUE_23,
                                                    PDAC_TISSUE_24, PDAC_TISSUE_25, PDAC_TISSUE_26, AdjNorm_TISSUE_1, AdjNorm_TISSUE_2,
-                                                   AdjNorm_TISSUE_3, MET_01, MET_03, MET_04, MET_05, MET_06))
+                                                   AdjNorm_TISSUE_3, MET_01, MET_03, MET_04, MET_05, MET_06) add.cell.ids = c("PDAC_TISSUE_1", "PDAC_TISSUE_2", "PDAC_TISSUE_3",
+                                                   "PDAC_TISSUE_4", "PDAC_TISSUE_5", PDAC_TISSUE_6", "PDAC_TISSUE_7", "PDAC_TISSUE_8", "PDAC_TISSUE_9", "PDAC_TISSUE_10",
+                                                   "PDAC_TISSUE_11A", "PDAC_TISSUE_11B", "PDAC_TISSUE_12", "PDAC_TISSUE_13", "PDAC_TISSUE_14", "PDAC_TISSUE_15",
+                                                   "PDAC_TISSUE_16", "PDAC_TISSUE_17", "PDAC_TISSUE_18", "PDAC_TISSUE_19", "PDAC_TISSUE_20", "PDAC_TISSUE_21",
+                                                   "PDAC_TISSUE_22", "PDAC_TISSUE_23", "PDAC_TISSUE_24", "PDAC_TISSUE_25", "PDAC_TISSUE_26", "AdjNorm_TISSUE_1",
+                                                   "AdjNorm_TISSUE_2", "AdjNorm_TISSUE_3", "MET_01", "MET_03", "MET_04", "MET_05", "MET_06"), project = "AllData.combined")
 
 #Checking samples present in the object
 
@@ -316,8 +324,71 @@ levels(AllData.combined)
 
 #Quality control
 
-AllData.combined[["percent.mt"]] <- PercentageFeatureSet(AllData.combined, pattern = "^MT-")
-VlnPlot(AllData.combined, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, pt.size = .0)
+AllData.combined$mitoRatio <- PercentageFeatureSet(AllData.combined, pattern = "^MT-")
+AllData.combined$mitoRatio <- AllData.combined@meta.data$mitoRatio / 100
+
+VlnPlot(AllData.combined, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, pt.size = 0.8)
+
+AllData.combined$log10GenesPerUMI <- log10(AllData.combined$nFeature_RNA) / log10(AllData.combined$nCount_RNA)
+
+plot1 <- FeatureScatter(AllData.combined, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(AllData.combined, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1 + plot2
+
+metadata <- AllData.combined@meta.data
+metadata <- metadata %>%
+        dplyr::rename(nUMI = nCount_RNA,
+                      nGene = nFeature_RNA)
+AllData.combined@meta.data <- metadata
+
+metadata %>% 
+  	ggplot(aes(x=ID, fill=ID)) + 
+  	geom_bar() +
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+  	ggtitle("NCells")
+
+metadata %>% 
+  	ggplot(aes(color=ID, x=nUMI, fill= ID)) + 
+  	geom_density(alpha = 0.2) + 
+  	scale_x_log10() + 
+  	theme_classic() +
+  	ylab("Cell density") +
+  	geom_vline(xintercept = )
+
+metadata %>% 
+  	ggplot(aes(color=ID, x=nGene, fill= sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	theme_classic() +
+  	scale_x_log10() + 
+  	geom_vline(xintercept = )
+
+metadata %>% 
+  	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
+  	geom_point() + 
+	scale_colour_gradient(low = "gray90", high = "black") +
+  	stat_smooth(method=lm) +
+  	scale_x_log10() + 
+  	scale_y_log10() + 
+  	theme_classic() +
+  	geom_vline(xintercept = ) +
+  	geom_hline(yintercept = ) +
+  	facet_wrap(~ID)
+
+metadata %>%
+  	ggplot(aes(x=log10GenesPerUMI, color = sample, fill=ID)) +
+  	geom_density(alpha = 0.2) +
+  	theme_classic() +
+  	geom_vline(xintercept = )
+
+filtered_data <- subset(x = AllData.combined, 
+                         subset= (nUMI >= ) & 
+                           (nGene >= ) & 
+                           (log10GenesPerUMI > ) & 
+                           (mitoRatio < ))
+
+AllData.combined <- NormalizeData(AllData.combined, normalization.method = "LogNormalize", scale.factor = 10000)
 s.genes <- cc.genes$s.genes
 g2m.genes <- cc.genes$g2m.genes
 AllData.combined <- CellCycleScoring(AllData.combined, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
@@ -355,43 +426,28 @@ p1<-DimPlot(AllData.combined.sct, reduction = "umap", label = TRUE)
 p2<-DimPlot(AllData.combined.sct, reduction = "umap", group.by = "ID")
 p1+p2
 
-#Using log-normalize
+#Expected Cell Types
 
-AllData.combined.list <- SplitObject(AllData.combined, split.by = "ID")
-AllData.combined.list <- lapply(X = AllData.combined.list, FUN = function(x) {
-  x <- NormalizeData(x)
-  x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
-})
-features <- SelectIntegrationFeatures(object.list = AllData.combined.list)
-AllData.combined.anchors <- FindIntegrationAnchors(object.list = AllData.combined.list, anchor.features = features)
-Integrated_All.combined <- IntegrateData(anchorset = AllData.combined.anchors)
+#FIBROBLASTS -
 
-DefaultAssay(Integrated_All.combined) <- "integrated"
+#ACINAR CELLS -
 
-Integrated_All.combined <- ScaleData(Integrated_All.combined, verbose = FALSE)
-Integrated_All.combined <- RunPCA(Integrated_All.combined, npcs = 50, verbose = FALSE)
-st_dev <- AIntegrated_All.combined@reductions$pca@stdev
-var <- st_dev^2
-for(i in 1:length(var)){
-  total <- sum(var)
-  numerator <- sum(var[1:i])
-  expvar <- numerator/total
-  if(EndVar == 0){
-    if(expvar > 0.9){
-      EndVar <- EndVar + 1
-      PCNum <- i
-    }
-  }
-}
-sum(var[1:nPCA])/ sum(var)
+#DUCTAL CELLS - 
 
-Integrated_All.combined <- RunUMAP(Integrated_All.combined, reduction = "pca", dims = 1:50)
-Integrated_All.combined <- FindNeighbors(Integrated_All.combined, reduction = "pca", dims = 1:50)
-Integrated_All.combined <- FindClusters(Integrated_All.combined, resolution = 1.2)
+#EPITHELIAL TUMOR CELLS -
 
-p1<-DimPlot(Integrated_All.combined, reduction = "umap", label = TRUE)
-p2<-DimPlot(Integrated_All.combined, reduction = "umap", group.by = "ID")
-p1+p2
+#T-CELLS -
 
+#B-CELLS -
 
-Cluster.markers <- FindAllMarkers(Integrated_All.combined, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25, test.use = "roc")
+#MACROPHAGES -
+
+#DENDRITIC CELLS -
+
+#NATURAL KILLER CELLS -
+
+#ENDOTHELIAL CELLS -
+
+#GRANULOCYTES -
+
+Cluster.markers <- FindAllMarkers(AllData.combined.sct, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25, test.use = "roc")
