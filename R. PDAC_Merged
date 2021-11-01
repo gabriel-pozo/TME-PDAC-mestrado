@@ -122,7 +122,7 @@ MET_05 <- CreateSeuratObject(counts = MET_05.data, project = 'MET_05', min.cells
 
 MET_06.data <- Read10X(data.dir = "~/Data.Merged/PDAC_MET06/")
 MET_06 <- CreateSeuratObject(counts = MET_06.data, project = 'MET_06', min.cells = 3, min.features = 200)
-
+--------------------------------------------------------------------------------------------------------------
 #Condition Metadata
 MET_01$DiseaseState <-"MET"
 MET_01$DiseaseGrade <-"NA"
@@ -298,7 +298,7 @@ AdjNorm_TISSUE_2$MetastaticSite <- "NA"
 AdjNorm_TISSUE_2$DiseaseGrade <-"NA"
 AdjNorm_TISSUE_2$DiseaseState <- "AdjNorm"
 AdjNorm_TISSUE_2$ID <- "AdjNorm_TISSUE_2"
-
+--------------------------------------------------------------------------------------------------------------
 #Merging the objects
 
 AllData.combined <- merge(PDAC_TISSUE_1, y = c(PDAC_TISSUE_2, PDAC_TISSUE_3, PDAC_TISSUE_4, 
@@ -321,8 +321,8 @@ AllData.combined <- merge(PDAC_TISSUE_1, y = c(PDAC_TISSUE_2, PDAC_TISSUE_3, PDA
 table(AllData.combined$orig.ident)
 Idents(object = AllData.combined) <- 'ID'
 levels(AllData.combined)
-
-#Quality control
+--------------------------------------------------------------------------------------------------------------
+2. Quality control
 
 AllData.combined$mitoRatio <- PercentageFeatureSet(AllData.combined, pattern = "^MT-")
 AllData.combined$mitoRatio <- AllData.combined@meta.data$mitoRatio / 100
@@ -335,35 +335,33 @@ plot1 <- FeatureScatter(AllData.combined, feature1 = "nCount_RNA", feature2 = "p
 plot2 <- FeatureScatter(AllData.combined, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
 plot1 + plot2
 
+#DF with our metadata
 metadata <- AllData.combined@meta.data
+#Rename the columns
 metadata <- metadata %>%
         dplyr::rename(nUMI = nCount_RNA,
                       nGene = nFeature_RNA)
+#Add back to Seurat object		      
 AllData.combined@meta.data <- metadata
 
-metadata %>% 
-  	ggplot(aes(x=ID, fill=ID)) + 
-  	geom_bar() +
-  	theme_classic() +
-  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
-  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
-  	ggtitle("NCells")
-
+#Number of UMI/Transcripts per cell
 metadata %>% 
   	ggplot(aes(color=ID, x=nUMI, fill= ID)) + 
   	geom_density(alpha = 0.2) + 
   	scale_x_log10() + 
   	theme_classic() +
   	ylab("Cell density") +
-  	geom_vline(xintercept = )
+  	geom_vline(xintercept = THRESHOLD)
 
+#Genes detected per cell
 metadata %>% 
   	ggplot(aes(color=ID, x=nGene, fill= sample)) + 
   	geom_density(alpha = 0.2) + 
   	theme_classic() +
   	scale_x_log10() + 
-  	geom_vline(xintercept = )
+  	geom_vline(xintercept = THRESHOLD)
 
+#Correlation between genes detected and number of UMIs similar to FeatureScatter
 metadata %>% 
   	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
   	geom_point() + 
@@ -372,31 +370,41 @@ metadata %>%
   	scale_x_log10() + 
   	scale_y_log10() + 
   	theme_classic() +
-  	geom_vline(xintercept = ) +
-  	geom_hline(yintercept = ) +
+  	geom_vline(xintercept = THRESHOLD) +
+  	geom_hline(yintercept = THRESHOLD) +
   	facet_wrap(~ID)
 
+#Visualize the distribution of mitochondrial gene expression detected per cell
 metadata %>%
   	ggplot(aes(x=log10GenesPerUMI, color = sample, fill=ID)) +
   	geom_density(alpha = 0.2) +
   	theme_classic() +
-  	geom_vline(xintercept = )
+  	geom_vline(xintercept = THRESHOLD)
 
+saveRDS(AllData.combined, data.dir = "~/unfilteredData.rds")
+
+#Filtering low quality cells
 filtered_data <- subset(x = AllData.combined, 
-                         subset= (nUMI >= ) & 
-                           (nGene >= ) & 
-                           (log10GenesPerUMI > ) & 
-                           (mitoRatio < ))
+                         subset= (nUMI >= THRESHOLD) & 
+                           (nGene >= THRESHOLD) & 
+                           (log10GenesPerUMI > THRESHOLD) & 
+                           (mitoRatio < THRESHOLD))
 
-AllData.combined <- NormalizeData(AllData.combined, normalization.method = "LogNormalize", scale.factor = 10000)
+saveRDS(filtered_data, data.dir = "~/filtered_data.rds")
+
+#Verifying if cell cycle phases accounts to our data variability
+Cell.cycle <- NormalizeData(filtered_data, normalization.method = "LogNormalize", scale.factor = 10000)
 s.genes <- cc.genes$s.genes
 g2m.genes <- cc.genes$g2m.genes
-AllData.combined <- CellCycleScoring(AllData.combined, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
-
-2. Integrated Workflow
+Cell.cycle <- CellCycleScoring(Cell.cycle, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
+Cell.cycle <- ScaleData(Cell.cycle)
+Cell.cycle <- RunPCA(Cell.cycle)
+DimPlot(Cell.cycle, reduction = "pca", group.by = "Phase", split.by = "Phase")
+--------------------------------------------------------------------------------------------------------------
+3. Integrated Workflow
 
 #Using SCTransform
-AllData.combined.list <- SplitObject(AllData.combined, split.by = "ID")
+AllData.combined.list <- SplitObject(filtered_data, split.by = "ID")
 AllData.combined.list <- lapply(X = AllData.combined.list, FUN = SCTransform)
 features <- SelectIntegrationFeatures(object.list = AllData.combined.list, nfeatures = 3000)
 AllData.combined.list <- PrepSCTIntegration(object.list = AllData.combined.list, anchor.features = features)
@@ -426,28 +434,115 @@ p1<-DimPlot(AllData.combined.sct, reduction = "umap", label = TRUE)
 p2<-DimPlot(AllData.combined.sct, reduction = "umap", group.by = "ID")
 p1+p2
 
+saveRDS(AllData.combined.sct, data.dir = "~SCT_UnlabeledData.rds")
+
 #Expected Cell Types
 
-#FIBROBLASTS -
+#FIBROBLASTS - c('TIMP1', 'FN1', 'POSTN', 'ACTA2', 'APOE', 'LY6D', 'COL3A1', 'CDH11', 'RGS5', 'COL1A1', 'COL1A2', 'S100A4', 'FAP', 'DCN', 'PDPN', 'PDGFRB', 'PDGFRA', 'THY1')
 
-#ACINAR CELLS -
+#ACINAR CELLS - c('CTRB1', 'CELA3A', 'CELA3B', 'CTRB2', 'PLA2G1B', 'PRSS2', 'SPINK1', 'CLPS', 'CPA1', 'PRSS1', 'CPA2', 'REG1A', 'PNLIP', 'SYCN',
+'PNLIPRP1', 'CTRC', 'KLK1', 'CELA2A', 'CPB1', 'REG3B', 'REG3G')
 
-#DUCTAL CELLS - 
+#ISLET CELLS - c('INS', 'GCG', 'SST', 'GHR', 'PPY', 'GCK', 'PCSK1', 'PCSK2', 'CHGA', 'CHGB', 'SYP', 'KCNJ11')
 
-#EPITHELIAL TUMOR CELLS -
+#EPITHELIAL TUMOR CELLS - c('AGR2', 'CEAMCAM6','S100A6','CLU','MKI67','KRT8','EPCAM','KRT19','KRT18', 'KRT8','TFF1','MUC1', 'SOX9', 'SPP1', 'TFF2')
 
-#T-CELLS -
+#T-CELLS - c('CD3D','CD3E','NCAM1','NKG7','CD4','CD8A','PRF1','IFNG', 'GZMB','CD69','FOXP3','TIGIT','TOP2A','FCGR3A')
 
-#B-CELLS -
+#B-CELLS - c('CD79A', 'MS4A1','CD20','CD138','IGJ','IGLL5','CXCR4','CD117','CD27','HLA-DRA')
 
-#MACROPHAGES -
+#MACROPHAGES/MONOCYTES - c('CD14','ITGAM','FCGR3A','FCGR3B','APOE','C1QA','MARCO','LYZ','HLA-DRA')
 
-#DENDRITIC CELLS -
+#DENDRITIC CELLS - c('ITGAE','LYZ','CLEC9A','BATF3','IRF8','IDO1','CD207','CD1A','CD1C', 'HLA-DRA','CCL22','LAMP3','IL22RA2','CD101')
 
-#NATURAL KILLER CELLS -
+#NATURAL KILLER CELLS - c('CD56', 'NKG2A', 'CCR7', 'CD2', 'IFNG', 'PRF1', 'NKG7')
 
-#ENDOTHELIAL CELLS -
+#ENDOTHELIAL CELLS - c('PECAM1', 'PLVAP', 'VWF')
 
-#GRANULOCYTES -
+#GRANULOCYTES - c('S100A8', 'S100A9', 'ELANE')
 
+#Finding the markers
 Cluster.markers <- FindAllMarkers(AllData.combined.sct, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25, test.use = "roc")
+
+saveRDS(Cluster.markers, data.dir = "~/Unlabeled_ClusterMarkers.rds")
+
+#Naming the clusters
+Clusters.ids <- c()
+names(Clusters.ids) <- levels(AllData.combined.sct)
+AllData.combined.sct <- RenameIdents(AllData.combined.sct, Clusters.ids)
+
+#Add clusters names to metadata
+AllData.combined.sct[["Cluster_Labels"]] <- Idents(object = AllData.combined.sct)
+
+saveRDS(AllData.combined.sct, data.dir = "~SCT_LabeledData.rds")
+--------------------------------------------------------------------------------------------------------------
+4. Plotting Heatmaps/Barplots/Correlation Matrix
+
+#Barplot
+BarPlot.pt <- table(Idents(AllData.combined.sct), AllData.combined.sct$ID)
+BarPlot.pt <- as.data.frame(BarPlot.pt)
+BarPlot.pt$Var1 <- as.character(BarPlot.pt$Var1)
+BarPlot.PT = BarPlot.pt %>% rename(Cell_Type = "Var1", ID = "Var2") %>%
+  group_by(ID) %>%
+  mutate(Percent = Freq / sum(Freq)*100)
+ggplot(BarPlot.PT, aes(x = ID, y = Percent, fill = Cell_Type)) +
+  geom_bar(stat = "identity")
+
+#Heatmap
+features <- c()
+Markers_data <- FetchData(AllData.combined.sct, vars = c(features))
+tissue_avg <- data.frame()
+n <- 1 # number of metadata columns
+
+for (id in levels(factor(Markers_data$Cluster_Labels))) {
+  data_subset <- Markers_data %>% filter(Cluster_Labels == id)
+  data_subset_avg <- apply(data_subset[,1:(ncol(data_subset)-n)], 2, mean)
+  tissue_avg <- rbind(tissue_avg, data_subset_avg)
+}
+
+colnames(tissue_avg) <- colnames(Markers_data)[1:(ncol(TME_data)-n)]
+rownames(tissue_avg) <- levels(factor(Markers_data$Cluster_Labels))
+
+#Heatmap with cluster markers
+pheatmap(as.matrix(tissue_avg), fontsize = 14, color = colorRampPalette(colors = c('#0000FF','#FFFFFF','#FF0000'))(250), 
+         border_color = 'black', cellwidth = 20, cellheight = 20, scale = 'column')
+
+
+Markers_data2 <- FetchData(AllData.combined.sct, vars = c(features, 'ID', 'DiseaseState', 'DiseaseGrade'))
+tissue_avg <- data.frame()
+n <- 3 # number of metadata columns
+
+for (id in levels(factor(Markers_data2$ID))) {
+  data_subset <- Markers_data2 %>% filter(ID == id)
+  data_subset_avg <- apply(data_subset[,1:(ncol(data_subset)-n)], 2, mean)
+  tissue_avg <- rbind(tissue_avg, data_subset_avg)
+}
+
+colnames(tissue_avg) <- colnames(Markers_data2)[1:(ncol(Markers_data2)-n)]
+rownames(tissue_avg) <- levels(factor(Markers_data2$ID))
+
+metadata <- unique(Markers_data2 %>% select('ID', 'DiseaseState', 'DiseaseGrade'))
+metadata <- metadata[order(metadata$DiseaseState, metadata$DiseaseGrade, decreasing = T),]
+rownames(metadata) <- metadata$ID
+metadata$ID <- NULL
+
+my_colour = list(DiseaseState = c(AdjNorm = "#080808", PDAC = "#D8D5D5", MET = '#a6cee3'),
+                 DiseaseGrade = c(2 = '#33a02c', 
+                           3 = '#b2df8a',
+                           4 = '#1f78b4',
+                           NA = '#fb9a99'))
+
+#Heatmap with metadata information
+pheatmap(as.matrix(tissue_avg), fontsize = 14, color = colorRampPalette(colors = c('#0000FF','#FFFFFF','#FF0000'))(250), annotation_row = metadata, annotation_colors = my_colour,
+         border_color = 'black', cellwidth = 20, cellheight = 20, scale = 'column')
+
+#Cluster correlation matrix
+av.exp <- AverageExpression(AllData.combined.sct)$integrated
+matrix <- cor(av.exp)
+corrplot(matrix, method = "circle")
+corrplot(matrix, method = 'circle', order = 'FPC', type = 'lower', diag = FALSE)
+--------------------------------------------------------------------------------------------------------------
+5. Subsetting the data - Fibroblasts/Lymphocytes/Myeloid/Epithelial
+
+
+
