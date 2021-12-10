@@ -403,17 +403,23 @@ DimPlot(Cell.cycle, reduction = "pca", group.by = "Phase", split.by = "Phase")
 --------------------------------------------------------------------------------------------------------------
 3. Integrated Workflow
 
-#Using SCTransform
+#Using log-normalize
 AllData.combined.list <- SplitObject(filtered_data, split.by = "ID")
-AllData.combined.list <- lapply(X = AllData.combined.list, FUN = SCTransform)
-features <- SelectIntegrationFeatures(object.list = AllData.combined.list, nfeatures = 3000)
-AllData.combined.list <- PrepSCTIntegration(object.list = AllData.combined.list, anchor.features = features)
+AllData.combined.list <- lapply(X = AllData.combined.list, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
 
-AllData.combined.anchors <- FindIntegrationAnchors(object.list = AllData.combined.list, normalization.method = "SCT",
-    anchor.features = features)
-AllData.combined.sct <- IntegrateData(anchorset = AllData.combined.anchors, normalization.method = "SCT")
-AllData.combined.sct <- RunPCA(AllData.combined.sct, npcs = 50, verbose = FALSE)
-st_dev <- AllData.combined.sct@reductions$pca@stdev
+features <- SelectIntegrationFeatures(object.list = AllData.combined.list)
+AllData.anchors <- FindIntegrationAnchors(object.list = AllData.combined.list, anchor.features = features)
+AllData.integrated <- IntegrateData(anchorset = AllData.anchors)
+
+DefaultAssay(AllData.integrated) <- "integrated"
+
+AllData.integrated <- ScaleData(AllData.integrated, verbose = FALSE)
+AllData.integrated <- RunPCA(AllData.integrated, npcs = 50, verbose = FALSE)
+
+st_dev <- AllData.integrated@reductions$pca@stdev
 var <- st_dev^2
 for(i in 1:length(var)){
   total <- sum(var)
@@ -428,13 +434,16 @@ for(i in 1:length(var)){
 }
 sum(var[1:nPCA])/ sum(var)
 
-AllData.combined.sct <- RunUMAP(AllData.combined.sct, reduction = "pca", dims = 1:50)
+AllData.integrated <- RunUMAP(AllData.integrated, reduction = "pca", dims = 1:30)
+AllData.integrated <- FindNeighbors(AllData.integrated, reduction = "pca", dims = 1:30)
+AllData.integrated <- FindClusters(AllData.integrated, resolution = 0.5)
 
-p1<-DimPlot(AllData.combined.sct, reduction = "umap", label = TRUE)
-p2<-DimPlot(AllData.combined.sct, reduction = "umap", group.by = "ID")
+
+p1<-DimPlot(AllData.integrated, reduction = "umap", label = TRUE)
+p2<-DimPlot(AllData.integrated, reduction = "umap", group.by = "ID")
 p1+p2
 
-saveRDS(AllData.combined.sct, data.dir = "~SCT_UnlabeledData.rds")
+saveRDS(AllData.integrated, data.dir = "~Merged_UnlabeledData.rds")
 
 #Expected Cell Types
 
