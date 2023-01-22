@@ -1,4 +1,4 @@
-# TME-PDAC-mestrado
+# TME-PDAC
 R.Código completo
 Workflow de análise single-cell; Perfil mutacional coorte TCGA
 Reanálise de dados públicos --> "Cellular heterogeneity during mouse pancreatic ductal adenocarcinoma progression at single-cell resolution" (GSE125588), Hosein et al. 2019 (https://pubmed.ncbi.nlm.nih.gov/31335328/)
